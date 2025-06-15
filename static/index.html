@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SQL Generator AI Agent</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 24px 32px 32px 32px; border-radius: 8px; box-shadow: 0 2px 8px #0001; }
+    h1 { text-align: center; color: #333; }
+    input, button, textarea { font-size: 1rem; }
+    textarea { width: 100%; min-height: 60px; margin-bottom: 12px; }
+    button { padding: 8px 20px; border: none; background: #007bff; color: #fff; border-radius: 4px; cursor: pointer; }
+    button:disabled { background: #aaa; }
+    .sql-box { background: #f4f4f4; padding: 8px; border-radius: 4px; font-family: monospace; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f1f1f1; }
+    .error { color: #c00; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SQL Generator AI Agent</h1>
+    <form id="query-form">
+      <textarea id="question" placeholder="Ask a question about your data..." required></textarea>
+      <button type="submit" id="submit">Generate & Run</button>
+    </form>
+    <div id="loading" style="display:none;">Loading...</div>
+    <div id="sql"></div>
+    <div id="result"></div>
+    <div id="error" class="error"></div>
+  </div>
+  <script>
+    const form = document.getElementById('query-form');
+    const questionInput = document.getElementById('question');
+    const sqlDiv = document.getElementById('sql');
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    const loadingDiv = document.getElementById('loading');
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      sqlDiv.innerHTML = '';
+      resultDiv.innerHTML = '';
+      errorDiv.innerHTML = '';
+      loadingDiv.style.display = 'block';
+      const question = questionInput.value;
+      try {
+        const res = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+        const data = await res.json();
+        loadingDiv.style.display = 'none';
+        if (data.error) {
+          errorDiv.textContent = data.error;
+          if (data.sql) sqlDiv.innerHTML = `<div class='sql-box'><b>SQL:</b> ${data.sql}</div>`;
+          return;
+        }
+        sqlDiv.innerHTML = `<div class='sql-box'><b>SQL:</b> ${data.sql}</div>`;
+        if (data.result.length === 0) {
+          resultDiv.innerHTML = '<em>No results found.</em>';
+        } else {
+          const cols = Object.keys(data.result[0]);
+          let table = '<table><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+          for (const row of data.result) {
+            table += '<tr>' + cols.map(c => `<td>${row[c]}</td>`).join('') + '</tr>';
+          }
+          table += '</table>';
+          resultDiv.innerHTML = table;
+        }
+      } catch (err) {
+        loadingDiv.style.display = 'none';
+        errorDiv.textContent = err.toString();
+      }
+    };
+  </script>
+</body>
+</html>
