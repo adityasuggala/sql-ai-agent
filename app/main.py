@@ -14,7 +14,11 @@ def main():
         nl_query = input("\nAsk your question (or type 'exit'): ")
         if nl_query.lower() == 'exit':
             break
-        sql = generate_sql(schema, nl_query)
+        # generate_sql only requires the natural language question. The previous
+        # implementation passed the database schema as the first argument which
+        # caused the question to be interpreted as the model name. This resulted
+        # in invalid API calls. We now pass only the question.
+        sql = generate_sql(nl_query)
         print("\nGenerated SQL:\n", sql)
         try:
             df = run_query(conn_str, sql)

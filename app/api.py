@@ -19,7 +19,15 @@ def query():
     if not question:
         return jsonify({"error": "No question provided"}), 400
     sql = generate_sql(question)
-    return jsonify({"sql": sql})
+    conn_str = os.getenv("DB_CONN_STR")
+    if not conn_str:
+        return jsonify({"error": "Database connection string not configured", "sql": sql}), 500
+    try:
+        df = run_query(conn_str, sql)
+        result = df.to_dict(orient="records")
+        return jsonify({"sql": sql, "result": result})
+    except Exception as e:
+        return jsonify({"error": str(e), "sql": sql}), 500
 
 @app.route("/")
 def serve_index():
